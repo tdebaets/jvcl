@@ -36,7 +36,8 @@ uses
   {$IFDEF UNITVERSIONING}
   JclUnitVersioning,
   {$ENDIF UNITVERSIONING}
-  Windows, Messages, Classes, SysUtils,
+  Windows, Messages, Classes, SysUtils, ComObj,
+  Forms, // AllocateHWnd/DeallocateHWnd
   JvComponentBase,
   DBT, JvSetupApi, Hid, JvTypes;
 
@@ -512,6 +513,17 @@ type
   EControllerError = class(EJVCLException);
   EHidClientError = class(EJVCLException);
 
+//=== common functions not present yet in Delphi 4 ===========================
+
+procedure FreeAndNil(var Obj);
+var
+  P: TObject;
+begin
+  P := TObject(Obj);
+  TObject(Obj) := nil;  // clear the reference before destroying the object
+  P.Free;
+end;
+
 //=== these are declared inconsistent in Windows.pas =========================
 
 function ReadFileEx(hFile: THandle; var Buffer; nNumberOfBytesToRead: DWORD;
@@ -534,7 +546,7 @@ end;
 
 constructor TJvHidDeviceReadThread.Create(CreateSuspended: Boolean);
 begin
-  raise EControllerError.CreateRes(@RsEDirectThreadCreationNotAllowed);
+  raise EControllerError.Create(RsEDirectThreadCreationNotAllowed);
 end;
 
 procedure TJvHidDeviceReadThread.DoData;
@@ -785,7 +797,7 @@ begin
   FHidFileHandle := INVALID_HANDLE_VALUE;
   FHidOverlappedRead := INVALID_HANDLE_VALUE;
   FHidOverlappedWrite := INVALID_HANDLE_VALUE;
-  raise EControllerError.CreateRes(@RsEDirectHidDeviceCreationNotAllowed);
+  raise EControllerError.Create(RsEDirectHidDeviceCreationNotAllowed);
 end;
 
 // create and fill in a HidDevice object
@@ -839,10 +851,10 @@ begin
   begin
     FAttributes.Size := SizeOf(THIDDAttributes);
     if not HidD_GetAttributes(HidFileHandle, FAttributes) then
-      raise EControllerError.CreateRes(@RsEDeviceCannotBeIdentified);
+      raise EControllerError.Create(RsEDeviceCannotBeIdentified);
   end
   else
-    raise EControllerError.CreateRes(@RsEDeviceCannotBeOpened);
+    raise EControllerError.Create(RsEDeviceCannotBeOpened);
   FPnPInfo := APnPInfo;
   // the file is closed to stop using up resources
   CloseFile;
@@ -2401,7 +2413,7 @@ end;
 function HidCheck(const RetVal: LongBool): LongBool;
 begin
   if not RetVal then
-    raise EHidClientError.CreateRes(@RsEHIDBooleanError);
+    raise EHidClientError.Create(RsEHIDBooleanError);
   Result := RetVal;
 end;
 

@@ -2161,7 +2161,6 @@ implementation
 
 uses
   SysUtils,
-  JclSysInfo,
   ModuleLoader;
 
 {$IFDEF HID_LINKONREQUEST}
@@ -2209,6 +2208,17 @@ begin
   {$ELSE}
   Result := True;
   {$ENDIF HID_LINKONREQUEST}
+end;
+
+function JclCheckWinVersion(Major, Minor: Integer): Boolean;
+begin
+  {$IFDEF RTL150_UP}
+  Result := CheckWin32Version(Major, Minor);
+  {$ELSE}
+  // Delphi 6 and older have a wrong implementation
+  Result := (Win32MajorVersion > Major) or
+            ((Win32MajorVersion = Major) and (Win32MinorVersion >= Minor));
+  {$ENDIF RTL150_UP}
 end;
 
 function LoadHid: Boolean;

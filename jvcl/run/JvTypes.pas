@@ -378,9 +378,9 @@ type
   end;
 
 const
-  ColCount = 20;
+  ColCount = 16;
   StandardColCount = 40;
-  SysColCount = 30;
+  SysColCount = 25;
   {$IFDEF COMPILER6}
    {$IF not declared(clHotLight)}
     {$MESSAGE ERROR 'You do not have Delphi 6 Runtime Library Update 2 installed. Please install it before installing the JVCL. http://downloads.codegear.com/default.aspx?productid=300'}
@@ -403,11 +403,11 @@ const
     (Value: clBlue;       Constant: 'clBlue';       Description: RsClBlue),
     (Value: clFuchsia;    Constant: 'clFuchsia';    Description: RsClFuchsia),
     (Value: clAqua;       Constant: 'clAqua';       Description: RsClAqua),
-    (Value: clWhite;      Constant: 'clWhite';      Description: RsClWhite),
-    (Value: clMoneyGreen; Constant: 'clMoneyGreen'; Description: RsClMoneyGreen),
+    (Value: clWhite;      Constant: 'clWhite';      Description: RsClWhite)
+    {(Value: clMoneyGreen; Constant: 'clMoneyGreen'; Description: RsClMoneyGreen)
     (Value: clSkyBlue;    Constant: 'clSkyBlue';    Description: RsClSkyBlue),
     (Value: clCream;      Constant: 'clCream';      Description: RsClCream),
-    (Value: clMedGray;    Constant: 'clMedGray';    Description: RsClMedGray)
+    (Value: clMedGray;    Constant: 'clMedGray';    Description: RsClMedGray)}
   );
 
   //added by dejoy (2005-04-20)
@@ -483,13 +483,13 @@ const
     (Value: cl3DDkShadow;          Constant: 'cl3DDkShadow';          Description: RsCl3DDkShadow),
     (Value: cl3DLight;             Constant: 'cl3DLight';             Description: RsCl3DLight),
     (Value: clInfoText;            Constant: 'clInfoText';            Description: RsClInfoText),
-    (Value: clInfoBk;              Constant: 'clInfoBk';              Description: RsClInfoBk),
+    (Value: clInfoBk;              Constant: 'clInfoBk';              Description: RsClInfoBk)
 
-    (Value: clGradientActiveCaption;   Constant: 'clGradientActiveCaption';  Description: RsGradientActiveCaption),
+    {(Value: clGradientActiveCaption;   Constant: 'clGradientActiveCaption';  Description: RsGradientActiveCaption),
     (Value: clGradientInactiveCaption; Constant: 'clGradientInactiveCaption';Description: RsGradientInactiveCaption),
     (Value: clHotLight;                Constant: 'clHotLight';               Description: RsHotLight),
     (Value: clMenuBar;                 Constant: 'clMenuBar';                Description: RsMenuBar),
-    (Value: clMenuHighlight;           Constant: 'clMenuHighlight';          Description: RsMenuHighlight)
+    (Value: clMenuHighlight;           Constant: 'clMenuHighlight';          Description: RsMenuHighlight)}
   );
 
 type
@@ -545,7 +545,7 @@ begin
     inherited Create(AOwner as TComponent)
   else
     inherited Create(nil);
-  SetSubComponent(True);
+  //SetSubComponent(True);
 
   FOwner := AOwner;
 end;
@@ -561,8 +561,8 @@ begin
   Result := inherited GetNamePath;
   lOwner := GetOwner;   //Resturn Nested NamePath
   if (lOwner <> nil)
-    and ( (csSubComponent in TComponent(lOwner).ComponentStyle)
-         or (TPersistentAccessProtected(lOwner).GetOwner <> nil)
+    and ( {(csSubComponent in TComponent(lOwner).ComponentStyle)
+         or} (TPersistentAccessProtected(lOwner).GetOwner <> nil)
         )
    then
   begin

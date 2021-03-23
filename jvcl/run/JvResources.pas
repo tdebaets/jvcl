@@ -37,6 +37,9 @@ uses
   JclUnitVersioning;
   {$ENDIF UNITVERSIONING}
 
+const
+  sLineBreak = #13#10;
+
 //=== used in several files ==================================================
 resourcestring
   RsButtonOKCaption = '&OK';

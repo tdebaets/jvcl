@@ -124,6 +124,30 @@ implementation
 uses
   SysUtils;
 
+function SafeLoadLibrary(const Filename: String;
+    ErrorMode: UINT = SEM_NOOPENFILEERRORBOX): HMODULE;
+var
+  SaveErrorMode: UINT;
+  SaveFPUControlWord: Word;
+begin
+  SaveErrorMode := SetErrorMode(ErrorMode);
+  try
+    asm
+      FNSTCW SaveFPUControlWord
+    end;
+    try
+      Result := LoadLibrary(PChar(Filename));
+    finally
+      asm
+        FNCLEX
+        FLDCW SaveFPUControlWord
+      end;
+    end;
+  finally
+    SetErrorMode(SaveErrorMode);
+  end;
+end;
+
 // load the DLL file FileName
 // the rules for FileName are those of LoadLibrary
 // Returns: True = success, False = failure to load

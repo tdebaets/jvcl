@@ -360,15 +360,6 @@ ALERT_jedi_inc_incompatible
 {-----------------------------------------------------------------------------}
 
 
-{$IFNDEF JVCL_CONFIGURED}
- {$IFDEF SUPPORTS_COMPILETIME_MESSAGES}
-  {$MESSAGE FATAL 'Your Delphi/BCB version is not supported by this JVCL version!'}
- {$ELSE}
-  'Your Delphi/BCB version is not supported by this JVCL version!'
- {$ENDIF SUPPORTS_COMPILETIME_MESSAGES}
-{$ENDIF !JVCL_CONFIGURED}
-
-
 // check configuration dependencies
 
 {$IFNDEF JVCL_UseQuickReport}
