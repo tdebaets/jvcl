@@ -9,11 +9,12 @@ implementation
 uses
   Classes,
   Controls,
-  JvHidControllerClass;
+  JvHidControllerClass,
+  JvHidControllerClassEx;
 
 procedure Register;
 begin
-  RegisterComponents('System', [TJvHidDeviceController]);
+  RegisterComponents('System', [TJvHidDeviceController, TJvHidDeviceControllerEx]);
 end;
 
 end.

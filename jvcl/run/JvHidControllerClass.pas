@@ -52,7 +52,9 @@ type
   // forward declarations
   TJvHidDeviceController = class;
   TJvHidDevice = class;
+  TJvHidDeviceClass = class of TJvHidDevice;
   TJvHidPnPInfo = class;
+  TJvHidPnPInfoClass = class of TJvHidPnPInfo;
 
   // the Event function declarations
   TJvHidEnumerateEvent = function(HidDev: TJvHidDevice;
@@ -146,7 +148,7 @@ type
     property Service: string read FService;
     property UINumber: DWORD read FUINumber;
     property UINumberFormat: string read FUINumberFormat;
-    constructor Create(APnPHandle: HDEVINFO; ADevData: TSPDevInfoData; const ADevicePath: string);
+    constructor Create(APnPHandle: HDEVINFO; ADevData: TSPDevInfoData; const ADevicePath: string); virtual;
     destructor Destroy; override;
   end;
 
@@ -155,10 +157,10 @@ type
   TJvHidDeviceReadThread = class(TJvCustomThread)
   private
     FErr: DWORD;
-    procedure DoData;
     procedure DoDataError;
     constructor CtlCreate(const Dev: TJvHidDevice);
   protected
+    procedure DoData; virtual;
     procedure Execute; override;
   public
     Device: TJvHidDevice;
@@ -166,6 +168,7 @@ type
     Report: array of Byte;
     constructor Create(CreateSuspended: Boolean);
   end;
+  TJvHidDeviceReadThreadClass = class of TJvHidDeviceReadThread;
 
   // the representation of a HID device
 
@@ -243,15 +246,16 @@ type
     procedure SetUsagePageParam(const UsagePage: TUsage);
     procedure StartThread;
     procedure StopThread;
+  protected
     // Constructor is hidden! Only a TJvHidDeviceController can create a TJvHidDevice object.
     // APnPInfo becomes the property of this class, do not try to free it yourself,
     // even if this call raises an exception.
     // The destructor of this class will take care of the cleanup even when an exception
     // is raised (as specified by the Delphi language)
-    constructor CtlCreate(const APnPInfo: TJvHidPnPInfo; const Controller: TJvHidDeviceController);
-  protected
+    constructor CtlCreate(const APnPInfo: TJvHidPnPInfo; const Controller: TJvHidDeviceController); virtual;
     // internal event implementor
     procedure DoUnplug;
+    property Controller: TJvHidDeviceController read FMyController;
   public
     // dummy constructor
     constructor Create;
@@ -310,7 +314,7 @@ type
     function WriteFile(var Report; ToWrite: DWORD; var BytesWritten: DWORD): Boolean;
     function WriteFileEx(var Report; ToWrite: DWORD;
       CallBack: TPROverlappedCompletionRoutine): Boolean;
-    function CheckOut: Boolean;
+    function CheckOut: Boolean; virtual;
     // Windows version dependent methods
     // added in Win 2000
     function GetExtendedAttributes(ReportType: THIDPReportType; DataIndex: Word;
@@ -419,6 +423,9 @@ type
     procedure DoRemoval(HidDev: TJvHidDevice);
     procedure DoDeviceChange;
     function DoEnumerate(HidDev: TJvHidDevice; Idx: Integer): Boolean;
+    function GetDeviceClass: TJvHidDeviceClass; virtual;
+    function GetDeviceReadThreadClass: TJvHidDeviceReadThreadClass; virtual;
+    function GetPnPInfoClass: TJvHidPnPInfoClass; virtual;
   public
     // normal constructor/destructor
     constructor Create(AOwner: TComponent); overload; override;
@@ -899,7 +906,7 @@ begin
           begin
             Dev := nil;
             try
-              Dev := TJvHidDevice.CtlCreate(FPnPInfo, FMyController);
+              Dev := GetDeviceClass.CtlCreate(FPnPInfo, FMyController);
               // make it a complete clone
               Dev.OnData := TmpOnData;
               Dev.OnUnplug := TmpOnUnplug;
@@ -1306,7 +1313,7 @@ begin
   if Assigned(FOnData) and IsPluggedIn and IsCheckedOut and
     HasReadWriteAccess and not Assigned(FDataThread) then
   begin
-    FDataThread := TJvHidDeviceReadThread.CtlCreate(Self);
+    FDataThread := FMyController.GetDeviceReadThreadClass.CtlCreate(Self);
   end;
 end;
 
@@ -1868,13 +1875,13 @@ var
               // Win64: Don't include the padding bytes into the string length calculation
               SetString(DevicePath, PChar(@FunctionClassDeviceData.DevicePath), (BytesReturned - (SizeOf(FunctionClassDeviceData.cbSize) + SizeOf(FunctionClassDeviceData.DevicePath))) div SizeOf(Char));
               // fill in PnPInfo of device
-              PnPInfo := TJvHidPnPInfo.Create(PnPHandle, DevData, DevicePath);
+              PnPInfo := GetPnPInfoClass.Create(PnPHandle, DevData, DevicePath);
               // create HID device object and add it to the device list
               RetryCreate := False;
               HidDev := nil;
               repeat
                 try
-                  HidDev := TJvHidDevice.CtlCreate(PnPInfo, Self);
+                  HidDev := GetDeviceClass.CtlCreate(PnPInfo, Self);
                 except
                   on EControllerError do
                     if Assigned(OnDeviceCreateError) then
@@ -2030,6 +2037,21 @@ begin
       HidDev.CloseFileEx(omhWrite);
     end;
   end;
+end;
+
+function TJvHidDeviceController.GetDeviceClass: TJvHidDeviceClass;
+begin
+  Result := TJvHidDevice;
+end;
+
+function TJvHidDeviceController.GetDeviceReadThreadClass: TJvHidDeviceReadThreadClass;
+begin
+  Result := TJvHidDeviceReadThread;
+end;
+
+function TJvHidDeviceController.GetPnPInfoClass: TJvHidPnPInfoClass;
+begin
+  Result := TJvHidPnPInfo;
 end;
 
 // assign DevPollingDelayTime
