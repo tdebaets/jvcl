@@ -545,10 +545,12 @@ function WriteFileEx(hFile: THandle; var Buffer; nNumberOfBytesToWrite: DWORD;
 
 constructor TJvHidDeviceReadThread.CtlCreate(const Dev: TJvHidDevice);
 begin
-  inherited Create(False);
   Device := Dev;
   NumBytesRead := 0;
   SetLength(Report, Dev.Caps.InputReportByteLength);
+  // Important: TThread's constructor already starts the thread, so all class
+  // members must be initialized prior to that
+  inherited Create(False);
 end;
 
 constructor TJvHidDeviceReadThread.Create(CreateSuspended: Boolean);
