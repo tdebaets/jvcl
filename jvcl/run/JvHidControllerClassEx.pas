@@ -14,6 +14,7 @@ type
 type
   TJvHidButtonEvent = procedure(HidDev: TJvHidDevice; Index: Word;
       IsOn: Boolean) of object;
+  TJvHidButtonReleaseEvent = procedure(HidDev: TJvHidDevice) of object;
   TJvHidValueEvent = procedure(HidDev: TJvHidDevice; Index: Word;
       RawValue: ULONG) of object;
 
@@ -41,6 +42,7 @@ type
     fDataIndexTypes: array of TDataIndexType;
     fHidData: array of THIDPData;
     procedure DoButton(Index: Word; IsOn: Boolean);
+    procedure DoButtonRelease;
     procedure DoValue(Index: Word; RawValue: ULONG);
   protected
     constructor CtlCreate(const APnPInfo: TJvHidPnPInfo;
@@ -53,6 +55,7 @@ type
   TJvHidDeviceControllerEx = class(TJvHidDeviceController)
   private
     fOnDeviceButton: TJvHidButtonEvent;
+    fOnDeviceButtonRelease: TJvHidButtonReleaseEvent;
     fOnDeviceValue: TJvHidValueEvent;
   protected
     function GetDeviceClass: TJvHidDeviceClass; override;
@@ -61,6 +64,8 @@ type
   published
     property OnDeviceButton: TJvHidButtonEvent
         read fOnDeviceButton write fOnDeviceButton;
+    property OnDeviceButtonRelease: TJvHidButtonReleaseEvent
+        read fOnDeviceButtonRelease write fOnDeviceButtonRelease;
     property OnDeviceValue: TJvHidValueEvent
         read fOnDeviceValue write fOnDeviceValue;
   end;
@@ -116,9 +121,11 @@ var
   DataLen: Cardinal;
   pData: PBYTE;
   Status: NTSTATUS;
+  ButtonsFound: Boolean;
 begin
   inherited;
   DeviceEx := Device as TJvHidDeviceEx;
+  ButtonsFound := False;
   if Length(DeviceEx.fHidData) > 0 then begin
     DataLen := Length(DeviceEx.fHidData);
     pData := @Report[0];
@@ -128,12 +135,16 @@ begin
     for i := 0 to DataLen - 1 do begin
       with DeviceEx.fHidData[i] do begin
         if (DataIndex >= Length(DeviceEx.fDataIndexTypes))
-            or (DeviceEx.fDataIndexTypes[DataIndex] = ditButton) then
-          DeviceEx.DoButton(DataIndex, On_)
+            or (DeviceEx.fDataIndexTypes[DataIndex] = ditButton) then begin
+          DeviceEx.DoButton(DataIndex, On_);
+          ButtonsFound := True;
+        end
         else if DeviceEx.fDataIndexTypes[DataIndex] = ditValue then
           DeviceEx.DoValue(DataIndex, RawValue);
       end;
     end;
+    if not ButtonsFound then
+      DeviceEx.DoButtonRelease;
   end;
 end;
 
@@ -149,6 +160,14 @@ begin
   with Controller as TJvHidDeviceControllerEx do begin
     if Assigned(fOnDeviceButton) then
       fOnDeviceButton(Self, Index, IsOn);
+  end;
+end;
+
+procedure TJvHidDeviceEx.DoButtonRelease;
+begin
+  with Controller as TJvHidDeviceControllerEx do begin
+    if Assigned(fOnDeviceButtonRelease) then
+      fOnDeviceButtonRelease(Self);
   end;
 end;
 
