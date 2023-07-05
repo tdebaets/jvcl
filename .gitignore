@@ -17,6 +17,12 @@ __recovery
 *.dcu
 *.dcp
 
+# Delphi local files (user-specific info)
+*.dsk
+
+# Delphi history and backups
+*.~*
+
 # C++ Builder Compiler output files
 *.bpi
 *.obj
