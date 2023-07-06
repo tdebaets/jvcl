@@ -63,14 +63,11 @@ type
 type
   TJvHidDeviceEx = class(TJvHidDevice)
   private
-    fDataIndexTypes: array of TDataIndexType;
-    fHidData: array of THIDPData;
+    fDataIndexTypeArr: array of TDataIndexType;
+    fHidDataArr: array of THIDPData;
     procedure DoButton(Index: Word; IsOn: Boolean);
     procedure DoButtonRelease;
     procedure DoValue(Index: Word; RawValue: ULONG);
-  protected
-    constructor CtlCreate(const APnPInfo: TJvHidPnPInfo;
-        const Controller: TJvHidDeviceController); override;
   public
     function CheckOut: Boolean; override;
   end;
@@ -100,7 +97,8 @@ constructor TJvHidPnPInfoEx.Create(APnPHandle: HDEVINFO; ADevData: TSPDevInfoDat
     const ADevicePath: String);
 begin
   inherited;
-  fContainerId := GetRegistryPropertyStringW(APnPHandle, ADevData, SPDRP_BASE_CONTAINERID);
+  fContainerId := GetRegistryPropertyStringW(APnPHandle, ADevData,
+      SPDRP_BASE_CONTAINERID);
 end;
 
 function TJvHidPnPInfoEx.GetRegistryPropertyStringW(PnPHandle: HDEVINFO;
@@ -108,32 +106,30 @@ function TJvHidPnPInfoEx.GetRegistryPropertyStringW(PnPHandle: HDEVINFO;
 var
   BytesReturned: DWORD;
   RegDataType: DWORD;
-  Buffer: PWideChar;
+  pBuffer: PWideChar;
   StackBuffer: array[0..1023] of WideChar;
 begin
   BytesReturned := 0;
   RegDataType := 0;
   Result := '';
-  SetupDiGetDeviceRegistryProperty(PnPHandle, DevData, Prop, RegDataType, nil, 0, BytesReturned);
-  if BytesReturned > 0 then
-  begin
-    if BytesReturned + SizeOf(WideChar) <= SizeOf(StackBuffer) then
-    begin
-      Buffer := @StackBuffer;
+  SetupDiGetDeviceRegistryProperty(PnPHandle, DevData, Prop, RegDataType, nil, 0,
+      BytesReturned);
+  if BytesReturned > 0 then begin
+    if BytesReturned + SizeOf(WideChar) <= SizeOf(StackBuffer) then begin
+      pBuffer := @StackBuffer;
       // enforce terminator
-      Buffer[BytesReturned div SizeOf(WideChar)] := #0;
+      pBuffer[BytesReturned div SizeOf(WideChar)] := #0;
     end
     else
-      Buffer := AllocMem(BytesReturned + 1);
-
+      pBuffer := AllocMem(BytesReturned + 1);
     try
-      Buffer[0] := #0;
-      SetupDiGetDeviceRegistryProperty(PnPHandle, DevData, Prop, RegDataType, PByte(@Buffer[0]),
-        BytesReturned, BytesReturned);
-      Result := Buffer;
+      pBuffer[0] := #0;
+      SetupDiGetDeviceRegistryProperty(PnPHandle, DevData, Prop, RegDataType,
+          PByte(@pBuffer[0]), BytesReturned, BytesReturned);
+      Result := pBuffer;
     finally
-      if Buffer <> @StackBuffer then
-        FreeMem(Buffer);
+      if pBuffer <> @StackBuffer then
+        FreeMem(pBuffer);
     end;
   end;
 end;
@@ -150,33 +146,26 @@ begin
   inherited;
   DeviceEx := Device as TJvHidDeviceEx;
   ButtonsFound := False;
-  if Length(DeviceEx.fHidData) > 0 then begin
-    DataLen := Length(DeviceEx.fHidData);
+  if Length(DeviceEx.fHidDataArr) > 0 then begin
+    DataLen := Length(DeviceEx.fHidDataArr);
     pData := @Report[0];
-    Status := DeviceEx.GetData(@DeviceEx.fHidData[0], DataLen, pData^,
+    Status := DeviceEx.GetData(@DeviceEx.fHidDataArr[0], DataLen, pData^,
         NumBytesRead);
     HidCheck(Status); // TODO
     for i := 0 to DataLen - 1 do begin
-      with DeviceEx.fHidData[i] do begin
-        if (DataIndex >= Length(DeviceEx.fDataIndexTypes))
-            or (DeviceEx.fDataIndexTypes[DataIndex] = ditButton) then begin
+      with DeviceEx.fHidDataArr[i] do begin
+        if (DataIndex >= Length(DeviceEx.fDataIndexTypeArr))
+            or (DeviceEx.fDataIndexTypeArr[DataIndex] = ditButton) then begin
           DeviceEx.DoButton(DataIndex, On_);
           ButtonsFound := True;
         end
-        else if DeviceEx.fDataIndexTypes[DataIndex] = ditValue then
+        else if DeviceEx.fDataIndexTypeArr[DataIndex] = ditValue then
           DeviceEx.DoValue(DataIndex, RawValue);
       end;
     end;
     if not ButtonsFound then
       DeviceEx.DoButtonRelease;
   end;
-end;
-
-// TODO: remove?
-constructor TJvHidDeviceEx.CtlCreate(const APnPInfo: TJvHidPnPInfo;
-    const Controller: TJvHidDeviceController);
-begin
-  inherited CtlCreate(APnpInfo, Controller);
 end;
 
 procedure TJvHidDeviceEx.DoButton(Index: Word; IsOn: Boolean);
@@ -214,38 +203,38 @@ begin
   Result := inherited Checkout;
   // TODO: try to move the following to before the checkout
   ReportTypeParam := HidP_Input; // TODO: remove (requires JvHidControllerClass changes)
-  SetLength(fHidData, MaxDataListLength);
-  SetLength(fDataIndexTypes, Caps.NumberInputDataIndices);
+  SetLength(fHidDataArr, MaxDataListLength);
+  SetLength(fDataIndexTypeArr, Caps.NumberInputDataIndices);
   if Caps.NumberInputButtonCaps > 0 then begin
     SetLength(ButtonCaps, Caps.NumberInputButtonCaps);
-    Count := Length(ButtonCaps);
+    Count := Length(ButtonCaps); // needed for GetButtonCaps var parameter
     Status := GetButtonCaps(@ButtonCaps[0], Count);
-    if Status = HIDP_STATUS_SUCCESS then begin
+    if Status = HIDP_STATUS_SUCCESS then begin // TODO: add helper function
       for i := 0 to Count - 1 do begin
         with ButtonCaps[i] do begin
           if IsRange then begin
             for RangeIdx := DataIndexMin to DataIndexMax do
-              fDataIndexTypes[RangeIdx] := ditButton;
+              fDataIndexTypeArr[RangeIdx] := ditButton;
           end
           else
-            fDataIndexTypes[DataIndex] := ditButton;
+            fDataIndexTypeArr[DataIndex] := ditButton;
         end;
       end;
     end;
   end;
   if Caps.NumberInputValueCaps > 0 then begin
     SetLength(ValueCaps, Caps.NumberInputValueCaps);
-    Count := Length(ValueCaps);
+    Count := Length(ValueCaps); // needed for GetValueCaps var parameter
     Status := GetValueCaps(@ValueCaps[0], Count);
     if Status = HIDP_STATUS_SUCCESS then begin // TODO: add helper function
       for i := 0 to Count - 1 do begin
         with ValueCaps[i] do begin
           if IsRange then begin
             for RangeIdx := DataIndexMin to DataIndexMax do
-              fDataIndexTypes[RangeIdx] := ditValue;
+              fDataIndexTypeArr[RangeIdx] := ditValue;
           end
           else
-            fDataIndexTypes[DataIndex] := ditValue;
+            fDataIndexTypeArr[DataIndex] := ditValue;
         end;
       end;
     end;
