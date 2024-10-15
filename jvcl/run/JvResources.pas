@@ -1113,8 +1113,8 @@ resourcestring
 
   RsEDirectThreadCreationNotAllowed = 'Direct creation of a TJvDeviceReadThread object is not allowed';
   RsEDirectHidDeviceCreationNotAllowed = 'Direct creation of a TJvHidDevice object is not allowed';
-  RsEDeviceCannotBeIdentified = 'Device cannot be identified';
-  RsEDeviceCannotBeOpened = 'Device cannot be opened';
+  RsEDeviceCannotBeIdentified = 'Device cannot be identified (%u)';
+  RsEDeviceCannotBeOpened = 'Device cannot be opened (%u)';
   RsEOnlyOneControllerPerProgram = 'Only one TJvHidDeviceController allowed per program';
   RsEHIDBooleanError = 'HID Error: a boolean function failed';
 

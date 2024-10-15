@@ -860,10 +860,10 @@ begin
   begin
     FAttributes.Size := SizeOf(THIDDAttributes);
     if not HidD_GetAttributes(HidFileHandle, FAttributes) then
-      raise EControllerError.Create(RsEDeviceCannotBeIdentified);
+      raise EControllerError.CreateFmt(RsEDeviceCannotBeIdentified, [GetLastError]);
   end
   else
-    raise EControllerError.Create(RsEDeviceCannotBeOpened);
+    raise EControllerError.CreateFmt(RsEDeviceCannotBeOpened, [GetLastError]);
   FPnPInfo := APnPInfo;
   // the file is closed to stop using up resources
   CloseFile;
@@ -1725,7 +1725,7 @@ begin
   SetOnDeviceChange(AOnDeviceChange);
   FOnDeviceCreateError := AOnHidCtlDeviceCreateError;
 
-  if IsHidLoaded then
+  if IsHidLoaded and not (csDesigning in ComponentState) then
   begin
     HidD_GetHidGuid(FHidGuid);
     // only hook messages if there is a HID DLL
@@ -2017,7 +2017,7 @@ begin
      (TMethod(Notifier).Data <> TMethod(FOnDeviceChange).Data) then
   begin
     FOnDeviceChange := Notifier;
-    if not (csLoading in ComponentState) then
+    if not (csLoading in ComponentState) and not (csDesigning in ComponentState) then
       DeviceChange;
   end;
 end;
